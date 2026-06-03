@@ -4,20 +4,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ND Situational Awareness Console</title>
+<title>ND Situational Awareness Dashboard</title>
 
 <style>
 :root {
-    --bg:#0e1117;
+    --bg:#0d1117;
     --panel:#161b22;
     --border:#2a2f3a;
     --text:#e6edf3;
     --muted:#9aa4b2;
-
+    --red:#ff4d4d;
     --green:#2ea043;
     --yellow:#d29922;
-    --red:#f85149;
-    --blue:#58a6ff;
 }
 
 * {
@@ -36,49 +34,35 @@ body {
 
 /* HEADER */
 header {
-    height:60px;
+    height:56px;
     background:var(--panel);
-    border-bottom:1px solid var(--border);
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:0 14px;
+    padding:0 12px;
+    border-bottom:1px solid var(--border);
 }
 
 header h1 {
-    font-size:15px;
-    font-weight:600;
+    font-size:14px;
 }
 
-#statusBar {
+#status {
     font-size:12px;
     color:var(--muted);
-    text-align:right;
 }
 
-/* ALERT STRIP */
-#alertStrip {
-    height:28px;
-    display:flex;
-    align-items:center;
-    padding:0 10px;
-    font-size:12px;
-    font-weight:600;
-    background:var(--green);
-    color:black;
-}
-
-/* NAV */
-nav {
+/* CONTROL BAR */
+.controls {
     display:flex;
     gap:6px;
-    padding:8px;
-    border-bottom:1px solid var(--border);
+    padding:6px;
     background:#0b0f14;
+    border-bottom:1px solid var(--border);
     flex-wrap:wrap;
 }
 
-nav button {
+button {
     background:var(--panel);
     border:1px solid var(--border);
     color:var(--text);
@@ -87,13 +71,13 @@ nav button {
     cursor:pointer;
 }
 
-nav button:hover {
-    border-color:var(--blue);
+button:hover {
+    border-color:#58a6ff;
 }
 
 /* OVERVIEW */
 #overview {
-    height:calc(100vh - 120px);
+    height:calc(100vh - 100px);
     display:grid;
     grid-template-columns:2fr 1fr;
     grid-template-rows:1fr 1fr;
@@ -102,7 +86,7 @@ nav button:hover {
 }
 
 .tile {
-    background:black;
+    background:#000;
     border:1px solid var(--border);
     position:relative;
     overflow:hidden;
@@ -112,20 +96,28 @@ nav button:hover {
     position:absolute;
     top:0;
     left:0;
-    background:rgba(0,0,0,0.7);
-    padding:4px 8px;
+    background:rgba(0,0,0,0.6);
+    padding:4px 6px;
     font-size:11px;
     z-index:2;
 }
 
-#local {
+/* LOCAL RADAR BIG */
+#localTile {
     grid-row:span 2;
+}
+
+/* IMPORTANT: iframe must fully fill */
+iframe {
+    width:100%;
+    height:100%;
+    border:none;
 }
 
 /* MAP VIEW */
 #mapView {
     display:none;
-    height:calc(100vh - 120px);
+    height:calc(100vh - 100px);
 }
 
 #mapView iframe {
@@ -134,27 +126,27 @@ nav button:hover {
     border:none;
 }
 
-/* CONDITIONS PANEL */
+/* CONDITIONS */
 .conditions {
     padding:10px;
-    font-size:12px;
+    font-size:13px;
     line-height:1.6;
-    color:var(--text);
-}
-
-/* ALERT LIST */
-#alertsList {
-    padding:10px;
-    font-size:12px;
     overflow:auto;
     height:100%;
 }
 
-.alertItem {
-    margin-bottom:8px;
-    padding:6px;
-    border-left:3px solid var(--red);
-    background:#11161d;
+.big {
+    font-size:18px;
+    font-weight:bold;
+}
+
+/* TOGGLES */
+.toggle-on {
+    border-color:var(--green);
+}
+
+.toggle-off {
+    border-color:var(--red);
 }
 </style>
 
@@ -163,36 +155,48 @@ nav button:hover {
 <body>
 
 <header>
-    <h1>North Dakota Situational Awareness Console</h1>
-    <div id="statusBar">Loading...</div>
+    <h1>ND Situational Awareness Dashboard</h1>
+    <div id="status">Initializing...</div>
 </header>
 
-<div id="alertStrip">Initializing alert feed...</div>
-
-<nav>
+<div class="controls">
     <button onclick="showOverview()">Overview</button>
     <button onclick="loadMap('local')">Local Radar</button>
     <button onclick="loadMap('national')">National Radar</button>
     <button onclick="loadMap('air')">Air Quality</button>
-    <button onclick="loadMap('smoke')">Smoke</button>
-    <button onclick="loadMap('river')">Rivers</button>
-    <button onclick="loadAlerts()">ND Alerts</button>
-</nav>
+    <button onclick="loadMap('river')">River Conditions</button>
+
+```
+<button id="autoRotateBtn" onclick="toggleRotate()">Auto Rotate: ON</button>
+<button id="autoRefreshBtn" onclick="toggleRefresh()">Auto Refresh: ON</button>
+```
+
+</div>
 
 <!-- OVERVIEW -->
 
 <div id="overview">
 
 ```
-<div class="tile" id="local">
+<div class="tile" id="localTile">
     <div class="tile-title">Local Radar</div>
     <iframe id="localRadar"></iframe>
 </div>
 
 <div class="tile">
-    <div class="tile-title">Conditions (KBIS)</div>
-    <div class="conditions" id="conditionsBox">
-        Loading conditions...
+    <div class="tile-title">Current Conditions (KBIS)</div>
+    <div class="conditions">
+        <div class="big">Bismarck, ND</div><br>
+
+        Temperature: -- °F<br>
+        Wind: -- mph<br>
+        Visibility: -- mi<br>
+        Pressure: -- inHg<br><br>
+
+        AQI: --<br>
+        Alerts: --<br><br>
+
+        Last Update: --<br>
     </div>
 </div>
 
@@ -218,20 +222,29 @@ nav button:hover {
 <script>
 
 /* =========================
-   MAP SOURCES
+   MAP SOURCES (NO WRAPPING)
 ========================= */
 
 const MAPS = {
-    local: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsicG9zaXRpb24iOlsiLTEwMC43ODEiLCI0Ny4zODM3Il0sInpvb20iOjd9LCJhbmltYXRpbmciOnRydWV9",
+    local: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOiJ3ZWF0aGVyIiwiY2VudGVyIjpbLTEwMC43ODEsNDcuMzgzXSwibG9jYXRpb24iOlstMTAwLjc3NCw0Ni44MTZdLCJ6b29tIjo3fSwiYW5pbWF0aW5nIjp0cnVlfQ==",
 
     national: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsicG9zaXRpb24iOlsiLTk1LjU2MiIsIjM5LjU2OCJdLCJ6b29tIjo0LjN9LCJhbmltYXRpbmciOnRydWV9",
 
     air: "https://gispub.epa.gov/airnow/?contours=ozonepm&tab=loops",
 
-    smoke: "https://fire.airnow.gov/#6.61/47.595/-101.288",
-
     river: "https://dashboard.waterdata.usgs.gov/app/nwd/en/"
 };
+
+/* =========================
+   STATE
+========================= */
+
+let rotate = true;
+let refresh = true;
+
+let rotateIndex = 0;
+
+const rotateList = ["local","national","air","river"];
 
 /* =========================
    INIT
@@ -242,13 +255,7 @@ function init() {
     document.getElementById("nationalRadar").src = MAPS.national;
     document.getElementById("airQuality").src = MAPS.air;
 
-    updateConditions();
-    fetchAlerts();
-
-    setInterval(fetchAlerts, 120000);
-    setInterval(updateConditions, 300000);
-
-    setStatus("Loaded: " + new Date().toLocaleTimeString());
+    updateStatus();
 }
 
 /* =========================
@@ -266,88 +273,60 @@ function loadMap(type) {
     document.getElementById("mapFrame").src = MAPS[type];
 }
 
-function loadAlerts() {
-    document.getElementById("overview").style.display = "none";
-    document.getElementById("mapView").style.display = "block";
+/* =========================
+   TOGGLES
+========================= */
 
-    document.getElementById("mapFrame").src =
-        "https://www.weather.gov/";
+function toggleRotate() {
+    rotate = !rotate;
+    const btn = document.getElementById("autoRotateBtn");
+    btn.textContent = "Auto Rotate: " + (rotate ? "ON" : "OFF");
+}
 
+function toggleRefresh() {
+    refresh = !refresh;
+    const btn = document.getElementById("autoRefreshBtn");
+    btn.textContent = "Auto Refresh: " + (refresh ? "ON" : "OFF");
 }
 
 /* =========================
-   CONDITIONS (SIMPLIFIED)
+   AUTO ROTATE
 ========================= */
-
-function updateConditions() {
-
-    // Lightweight placeholder (can later connect API)
-    const box = document.getElementById("conditionsBox");
-
-    box.innerHTML = `
-        Bismarck (KBIS)<br><br>
-        Temp: -- °F<br>
-        Wind: -- mph<br>
-        Visibility: -- mi<br>
-        Pressure: -- inHg<br><br>
-        AQI: updating...
-    `;
-}
-
-/* =========================
-   ALERT FEED (NWS API READY HOOK)
-========================= */
-
-async function fetchAlerts() {
-
-    try {
-        const res = await fetch("https://api.weather.gov/alerts/active?area=ND");
-        const data = await res.json();
-
-        const alerts = data.features || [];
-
-        let strip = document.getElementById("alertStrip");
-
-        if (alerts.length === 0) {
-            strip.style.background = "var(--green)";
-            strip.textContent = "No active alerts for North Dakota";
-        } else {
-            strip.style.background = "var(--red)";
-            strip.textContent = `${alerts.length} ACTIVE ALERT(S) IN NORTH DAKOTA`;
-        }
-
-        let html = "";
-
-        alerts.slice(0, 10).forEach(a => {
-            const props = a.properties;
-            html += `
-                <div class="alertItem">
-                    ${props.event}<br>
-                    <small>${props.areaDesc}</small>
-                </div>
-            `;
-        });
-
-    } catch (e) {
-        document.getElementById("alertStrip").style.background = "var(--yellow)";
-        document.getElementById("alertStrip").textContent =
-            "Alert feed unavailable (retrying...)";
-    }
-}
-
-/* =========================
-   STATUS BAR
-========================= */
-
-function setStatus(msg) {
-    document.getElementById("statusBar").innerText = msg;
-}
 
 setInterval(() => {
-    setStatus("Updated: " + new Date().toLocaleTimeString());
-}, 60000);
+    if (!rotate) return;
 
-/* START */
+    rotateIndex = (rotateIndex + 1) % rotateList.length;
+    loadMap(rotateList[rotateIndex]);
+
+}, 15000);
+
+/* =========================
+   AUTO REFRESH SAFE
+========================= */
+
+setInterval(() => {
+    if (!refresh) return;
+
+    const frame = document.getElementById("mapFrame");
+
+    if (frame.src) {
+        frame.src = frame.src;
+    }
+
+}, 300000);
+
+/* =========================
+   STATUS
+========================= */
+
+function updateStatus() {
+    document.getElementById("status").innerText =
+        "Loaded: " + new Date().toLocaleTimeString();
+}
+
+setInterval(updateStatus, 60000);
+
 init();
 
 </script>
