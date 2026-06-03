@@ -13,15 +13,12 @@
     --border:#2a2f3a;
     --text:#e6edf3;
     --muted:#9aa4b2;
-    --red:#ff4d4d;
-    --green:#2ea043;
-    --yellow:#d29922;
 }
 
 * {
-    box-sizing:border-box;
     margin:0;
     padding:0;
+    box-sizing:border-box;
     font-family:Arial, sans-serif;
 }
 
@@ -36,11 +33,11 @@ body {
 header {
     height:56px;
     background:var(--panel);
+    border-bottom:1px solid var(--border);
     display:flex;
     justify-content:space-between;
     align-items:center;
     padding:0 12px;
-    border-bottom:1px solid var(--border);
 }
 
 header h1 {
@@ -75,43 +72,70 @@ button:hover {
     border-color:#58a6ff;
 }
 
-/* OVERVIEW */
+/* OVERVIEW GRID (FIXED HIERARCHY) */
 #overview {
     height:calc(100vh - 100px);
     display:grid;
-    grid-template-columns:2fr 1fr;
-    grid-template-rows:1fr 1fr;
+
+    grid-template-columns: 2.2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+
     gap:6px;
     padding:6px;
 }
 
-.tile {
+/* MAIN MAP (LOCAL RADAR) */
+#localTile {
+    grid-row: span 2;
+    position:relative;
     background:#000;
     border:1px solid var(--border);
-    position:relative;
     overflow:hidden;
 }
 
-.tile-title {
+/* SECONDARY MAPS */
+.tile {
+    position:relative;
+    background:#000;
+    border:1px solid var(--border);
+    overflow:hidden;
+}
+
+/* TILE LABEL */
+.label {
     position:absolute;
     top:0;
     left:0;
-    background:rgba(0,0,0,0.6);
-    padding:4px 6px;
     font-size:11px;
+    background:rgba(0,0,0,0.65);
+    padding:4px 6px;
     z-index:2;
 }
 
-/* LOCAL RADAR BIG */
-#localTile {
-    grid-row:span 2;
-}
-
-/* IMPORTANT: iframe must fully fill */
+/* IFRAME FIX (CRITICAL) */
 iframe {
     width:100%;
     height:100%;
     border:none;
+}
+
+/* CONDITIONS — NOW SMALL FLOATING CARD */
+#conditionsCard {
+    position:absolute;
+    bottom:10px;
+    right:10px;
+
+    width:240px;
+    background:rgba(20,20,20,0.92);
+    border:1px solid var(--border);
+    padding:10px;
+    font-size:12px;
+    line-height:1.5;
+    z-index:5;
+}
+
+#conditionsCard strong {
+    font-size:13px;
 }
 
 /* MAP VIEW */
@@ -123,30 +147,6 @@ iframe {
 #mapView iframe {
     width:100%;
     height:100%;
-    border:none;
-}
-
-/* CONDITIONS */
-.conditions {
-    padding:10px;
-    font-size:13px;
-    line-height:1.6;
-    overflow:auto;
-    height:100%;
-}
-
-.big {
-    font-size:18px;
-    font-weight:bold;
-}
-
-/* TOGGLES */
-.toggle-on {
-    border-color:var(--green);
-}
-
-.toggle-off {
-    border-color:var(--red);
 }
 </style>
 
@@ -156,7 +156,7 @@ iframe {
 
 <header>
     <h1>ND Situational Awareness Dashboard</h1>
-    <div id="status">Initializing...</div>
+    <div id="status">Loading...</div>
 </header>
 
 <div class="controls">
@@ -164,13 +164,6 @@ iframe {
     <button onclick="loadMap('local')">Local Radar</button>
     <button onclick="loadMap('national')">National Radar</button>
     <button onclick="loadMap('air')">Air Quality</button>
-    <button onclick="loadMap('river')">River Conditions</button>
-
-```
-<button id="autoRotateBtn" onclick="toggleRotate()">Auto Rotate: ON</button>
-<button id="autoRefreshBtn" onclick="toggleRefresh()">Auto Refresh: ON</button>
-```
-
 </div>
 
 <!-- OVERVIEW -->
@@ -178,35 +171,31 @@ iframe {
 <div id="overview">
 
 ```
-<div class="tile" id="localTile">
-    <div class="tile-title">Local Radar</div>
+<!-- LOCAL RADAR (PRIMARY) -->
+<div id="localTile">
+    <div class="label">Local Radar</div>
     <iframe id="localRadar"></iframe>
-</div>
 
-<div class="tile">
-    <div class="tile-title">Current Conditions (KBIS)</div>
-    <div class="conditions">
-        <div class="big">Bismarck, ND</div><br>
-
-        Temperature: -- °F<br>
-        Wind: -- mph<br>
-        Visibility: -- mi<br>
-        Pressure: -- inHg<br><br>
-
+    <!-- SMALL OVERLAY CARD -->
+    <div id="conditionsCard">
+        <strong>Bismarck (KBIS)</strong><br><br>
+        Temp: --<br>
+        Wind: --<br>
         AQI: --<br>
-        Alerts: --<br><br>
-
-        Last Update: --<br>
+        Alerts: --<br>
+        Updated: --
     </div>
 </div>
 
+<!-- NATIONAL RADAR -->
 <div class="tile">
-    <div class="tile-title">National Radar</div>
+    <div class="label">National Radar</div>
     <iframe id="nationalRadar"></iframe>
 </div>
 
+<!-- AIR QUALITY -->
 <div class="tile">
-    <div class="tile-title">Air Quality</div>
+    <div class="label">Air Quality</div>
     <iframe id="airQuality"></iframe>
 </div>
 ```
@@ -221,35 +210,16 @@ iframe {
 
 <script>
 
-/* =========================
-   MAP SOURCES (NO WRAPPING)
-========================= */
-
+/* MAP SOURCES */
 const MAPS = {
-    local: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOiJ3ZWF0aGVyIiwiY2VudGVyIjpbLTEwMC43ODEsNDcuMzgzXSwibG9jYXRpb24iOlstMTAwLjc3NCw0Ni44MTZdLCJ6b29tIjo3fSwiYW5pbWF0aW5nIjp0cnVlfQ==",
+    local: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsicG9zaXRpb24iOlsiLTEwMC43ODEiLCI0Ny4zODM3Il0sInpvb20iOjd9LCJhbmltYXRpbmciOnRydWV9",
 
     national: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsicG9zaXRpb24iOlsiLTk1LjU2MiIsIjM5LjU2OCJdLCJ6b29tIjo0LjN9LCJhbmltYXRpbmciOnRydWV9",
 
-    air: "https://gispub.epa.gov/airnow/?contours=ozonepm&tab=loops",
-
-    river: "https://dashboard.waterdata.usgs.gov/app/nwd/en/"
+    air: "https://gispub.epa.gov/airnow/?contours=ozonepm&tab=loops"
 };
 
-/* =========================
-   STATE
-========================= */
-
-let rotate = true;
-let refresh = true;
-
-let rotateIndex = 0;
-
-const rotateList = ["local","national","air","river"];
-
-/* =========================
-   INIT
-========================= */
-
+/* INIT */
 function init() {
     document.getElementById("localRadar").src = MAPS.local;
     document.getElementById("nationalRadar").src = MAPS.national;
@@ -258,10 +228,7 @@ function init() {
     updateStatus();
 }
 
-/* =========================
-   NAV
-========================= */
-
+/* NAV */
 function showOverview() {
     document.getElementById("overview").style.display = "grid";
     document.getElementById("mapView").style.display = "none";
@@ -273,56 +240,10 @@ function loadMap(type) {
     document.getElementById("mapFrame").src = MAPS[type];
 }
 
-/* =========================
-   TOGGLES
-========================= */
-
-function toggleRotate() {
-    rotate = !rotate;
-    const btn = document.getElementById("autoRotateBtn");
-    btn.textContent = "Auto Rotate: " + (rotate ? "ON" : "OFF");
-}
-
-function toggleRefresh() {
-    refresh = !refresh;
-    const btn = document.getElementById("autoRefreshBtn");
-    btn.textContent = "Auto Refresh: " + (refresh ? "ON" : "OFF");
-}
-
-/* =========================
-   AUTO ROTATE
-========================= */
-
-setInterval(() => {
-    if (!rotate) return;
-
-    rotateIndex = (rotateIndex + 1) % rotateList.length;
-    loadMap(rotateList[rotateIndex]);
-
-}, 15000);
-
-/* =========================
-   AUTO REFRESH SAFE
-========================= */
-
-setInterval(() => {
-    if (!refresh) return;
-
-    const frame = document.getElementById("mapFrame");
-
-    if (frame.src) {
-        frame.src = frame.src;
-    }
-
-}, 300000);
-
-/* =========================
-   STATUS
-========================= */
-
+/* STATUS */
 function updateStatus() {
     document.getElementById("status").innerText =
-        "Loaded: " + new Date().toLocaleTimeString();
+        "Updated: " + new Date().toLocaleTimeString();
 }
 
 setInterval(updateStatus, 60000);
