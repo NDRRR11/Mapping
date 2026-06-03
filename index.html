@@ -4,70 +4,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Situational Awareness Dashboard - Embed Test</title>
+<title>ND Situational Awareness Console</title>
 
 <style>
+:root {
+    --bg:#0e1117;
+    --panel:#161b22;
+    --border:#2a2f3a;
+    --text:#e6edf3;
+    --muted:#9aa4b2;
+
+    --green:#2ea043;
+    --yellow:#d29922;
+    --red:#f85149;
+    --blue:#58a6ff;
+}
+
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial, sans-serif;
 }
 
 body {
-    background: #111;
-    color: white;
-    font-family: Arial, sans-serif;
-    height: 100vh;
-    overflow: hidden;
+    background:var(--bg);
+    color:var(--text);
+    height:100vh;
+    overflow:hidden;
 }
 
+/* HEADER */
 header {
-    height: 60px;
-    background: #1f1f1f;
-    border-bottom: 1px solid #444;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
+    height:60px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 14px;
 }
 
-.dashboard {
-    height: calc(100vh - 60px);
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 4px;
-    padding: 4px;
+header h1 {
+    font-size:15px;
+    font-weight:600;
 }
 
-.panel {
-    position: relative;
-    background: #000;
-    border: 1px solid #444;
-    overflow: hidden;
+#statusBar {
+    font-size:12px;
+    color:var(--muted);
+    text-align:right;
 }
 
-.panel-title {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 10;
-    background: rgba(0,0,0,.75);
-    padding: 6px 10px;
-    font-size: 13px;
-    font-weight: bold;
+/* ALERT STRIP */
+#alertStrip {
+    height:28px;
+    display:flex;
+    align-items:center;
+    padding:0 10px;
+    font-size:12px;
+    font-weight:600;
+    background:var(--green);
+    color:black;
 }
 
-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
+/* NAV */
+nav {
+    display:flex;
+    gap:6px;
+    padding:8px;
+    border-bottom:1px solid var(--border);
+    background:#0b0f14;
+    flex-wrap:wrap;
 }
 
-.status {
-    font-size: 14px;
-    color: #ccc;
+nav button {
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:5px 10px;
+    font-size:12px;
+    cursor:pointer;
+}
+
+nav button:hover {
+    border-color:var(--blue);
+}
+
+/* OVERVIEW */
+#overview {
+    height:calc(100vh - 120px);
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    grid-template-rows:1fr 1fr;
+    gap:6px;
+    padding:6px;
+}
+
+.tile {
+    background:black;
+    border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+}
+
+.tile-title {
+    position:absolute;
+    top:0;
+    left:0;
+    background:rgba(0,0,0,0.7);
+    padding:4px 8px;
+    font-size:11px;
+    z-index:2;
+}
+
+#local {
+    grid-row:span 2;
+}
+
+/* MAP VIEW */
+#mapView {
+    display:none;
+    height:calc(100vh - 120px);
+}
+
+#mapView iframe {
+    width:100%;
+    height:100%;
+    border:none;
+}
+
+/* CONDITIONS PANEL */
+.conditions {
+    padding:10px;
+    font-size:12px;
+    line-height:1.6;
+    color:var(--text);
+}
+
+/* ALERT LIST */
+#alertsList {
+    padding:10px;
+    font-size:12px;
+    overflow:auto;
+    height:100%;
+}
+
+.alertItem {
+    margin-bottom:8px;
+    padding:6px;
+    border-left:3px solid var(--red);
+    background:#11161d;
 }
 </style>
 
@@ -76,88 +163,192 @@ iframe {
 <body>
 
 <header>
-    <h2>Situational Awareness Dashboard Test</h2>
-    <div class="status" id="loadedTime"></div>
+    <h1>North Dakota Situational Awareness Console</h1>
+    <div id="statusBar">Loading...</div>
 </header>
 
-<div class="dashboard">
+<div id="alertStrip">Initializing alert feed...</div>
+
+<nav>
+    <button onclick="showOverview()">Overview</button>
+    <button onclick="loadMap('local')">Local Radar</button>
+    <button onclick="loadMap('national')">National Radar</button>
+    <button onclick="loadMap('air')">Air Quality</button>
+    <button onclick="loadMap('smoke')">Smoke</button>
+    <button onclick="loadMap('river')">Rivers</button>
+    <button onclick="loadAlerts()">ND Alerts</button>
+</nav>
+
+<!-- OVERVIEW -->
+
+<div id="overview">
 
 ```
-<div class="panel">
-    <div class="panel-title">Local Radar</div>
-    <iframe src="YOUR_LOCAL_RADAR_URL"></iframe>
+<div class="tile" id="local">
+    <div class="tile-title">Local Radar</div>
+    <iframe id="localRadar"></iframe>
 </div>
 
-<div class="panel">
-    <div class="panel-title">National Radar</div>
-    <iframe src="YOUR_NATIONAL_RADAR_URL"></iframe>
-</div>
-
-<div class="panel">
-    <div class="panel-title">Air Quality</div>
-    <iframe src="https://gispub.epa.gov/airnow/?contours=ozonepm&monitors=none&xmin=-12245196.475292878&xmax=-9909280.890898513&ymin=5514871.866480421&ymax=6467582.987026606&tab=loops"></iframe>
-</div>
-
-<div class="panel">
-    <div class="panel-title">Wildfire Smoke</div>
-    <iframe src="https://fire.airnow.gov/#6.61/47.595/-101.288"></iframe>
-</div>
-
-<div class="panel">
-    <div class="panel-title">River Conditions</div>
-    <iframe src="https://dashboard.waterdata.usgs.gov/app/nwd/en/"></iframe>
-</div>
-
-<div class="panel">
-    <div class="panel-title">Embed Test Results</div>
-
-    <div style="
-        padding:20px;
-        font-size:16px;
-        line-height:1.8;
-    ">
-        Verify:
-        <br><br>
-
-        ✅ Local Radar loads
-        <br>
-
-        ✅ National Radar loads
-        <br>
-
-        ✅ Air Quality loads
-        <br>
-
-        ✅ Wildfire Smoke loads
-        <br>
-
-        ✅ River Conditions loads
-        <br><br>
-
-        If any panel shows:
-        <br>
-
-        ❌ Blank screen
-        <br>
-
-        ❌ Refused to Connect
-        <br>
-
-        ❌ Security Policy Error
-        <br><br>
-
-        Let ChatGPT know which one failed.
+<div class="tile">
+    <div class="tile-title">Conditions (KBIS)</div>
+    <div class="conditions" id="conditionsBox">
+        Loading conditions...
     </div>
+</div>
 
+<div class="tile">
+    <div class="tile-title">National Radar</div>
+    <iframe id="nationalRadar"></iframe>
+</div>
+
+<div class="tile">
+    <div class="tile-title">Air Quality</div>
+    <iframe id="airQuality"></iframe>
 </div>
 ```
 
+</div>
+
+<!-- MAP VIEW -->
+
+<div id="mapView">
+    <iframe id="mapFrame"></iframe>
 </div>
 
 <script>
 
-document.getElementById("loadedTime").innerText =
-    "Loaded: " + new Date().toLocaleString();
+/* =========================
+   MAP SOURCES
+========================= */
+
+const MAPS = {
+    local: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsicG9zaXRpb24iOlsiLTEwMC43ODEiLCI0Ny4zODM3Il0sInpvb20iOjd9LCJhbmltYXRpbmciOnRydWV9",
+
+    national: "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsicG9zaXRpb24iOlsiLTk1LjU2MiIsIjM5LjU2OCJdLCJ6b29tIjo0LjN9LCJhbmltYXRpbmciOnRydWV9",
+
+    air: "https://gispub.epa.gov/airnow/?contours=ozonepm&tab=loops",
+
+    smoke: "https://fire.airnow.gov/#6.61/47.595/-101.288",
+
+    river: "https://dashboard.waterdata.usgs.gov/app/nwd/en/"
+};
+
+/* =========================
+   INIT
+========================= */
+
+function init() {
+    document.getElementById("localRadar").src = MAPS.local;
+    document.getElementById("nationalRadar").src = MAPS.national;
+    document.getElementById("airQuality").src = MAPS.air;
+
+    updateConditions();
+    fetchAlerts();
+
+    setInterval(fetchAlerts, 120000);
+    setInterval(updateConditions, 300000);
+
+    setStatus("Loaded: " + new Date().toLocaleTimeString());
+}
+
+/* =========================
+   NAV
+========================= */
+
+function showOverview() {
+    document.getElementById("overview").style.display = "grid";
+    document.getElementById("mapView").style.display = "none";
+}
+
+function loadMap(type) {
+    document.getElementById("overview").style.display = "none";
+    document.getElementById("mapView").style.display = "block";
+    document.getElementById("mapFrame").src = MAPS[type];
+}
+
+function loadAlerts() {
+    document.getElementById("overview").style.display = "none";
+    document.getElementById("mapView").style.display = "block";
+
+    document.getElementById("mapFrame").src =
+        "https://www.weather.gov/";
+
+}
+
+/* =========================
+   CONDITIONS (SIMPLIFIED)
+========================= */
+
+function updateConditions() {
+
+    // Lightweight placeholder (can later connect API)
+    const box = document.getElementById("conditionsBox");
+
+    box.innerHTML = `
+        Bismarck (KBIS)<br><br>
+        Temp: -- °F<br>
+        Wind: -- mph<br>
+        Visibility: -- mi<br>
+        Pressure: -- inHg<br><br>
+        AQI: updating...
+    `;
+}
+
+/* =========================
+   ALERT FEED (NWS API READY HOOK)
+========================= */
+
+async function fetchAlerts() {
+
+    try {
+        const res = await fetch("https://api.weather.gov/alerts/active?area=ND");
+        const data = await res.json();
+
+        const alerts = data.features || [];
+
+        let strip = document.getElementById("alertStrip");
+
+        if (alerts.length === 0) {
+            strip.style.background = "var(--green)";
+            strip.textContent = "No active alerts for North Dakota";
+        } else {
+            strip.style.background = "var(--red)";
+            strip.textContent = `${alerts.length} ACTIVE ALERT(S) IN NORTH DAKOTA`;
+        }
+
+        let html = "";
+
+        alerts.slice(0, 10).forEach(a => {
+            const props = a.properties;
+            html += `
+                <div class="alertItem">
+                    ${props.event}<br>
+                    <small>${props.areaDesc}</small>
+                </div>
+            `;
+        });
+
+    } catch (e) {
+        document.getElementById("alertStrip").style.background = "var(--yellow)";
+        document.getElementById("alertStrip").textContent =
+            "Alert feed unavailable (retrying...)";
+    }
+}
+
+/* =========================
+   STATUS BAR
+========================= */
+
+function setStatus(msg) {
+    document.getElementById("statusBar").innerText = msg;
+}
+
+setInterval(() => {
+    setStatus("Updated: " + new Date().toLocaleTimeString());
+}, 60000);
+
+/* START */
+init();
 
 </script>
 
